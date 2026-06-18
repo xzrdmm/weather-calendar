@@ -28,7 +28,9 @@ export default function fixHtmlPlugin() {
 
       // 合并所有 script 为一个，放到 </body> 前
       if (scripts.length > 0) {
-        const merged = '<script>' + scripts.join('\n') + '</script>'
+        // 转义 JS 中的 </script> 防止 HTML 解析器提前关闭标签
+        const escaped = scripts.join('\n').replace(/<\/script>/gi, '<\\/script>')
+        const merged = '<script>' + escaped + '</script>'
         html = html.replace('</body>', merged + '\n</body>')
       }
 
