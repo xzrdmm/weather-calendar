@@ -1,0 +1,26 @@
+{
+  "name": "weather-calendar",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node -e \"var f=require('fs');var h=f.readFileSync('dist/index.html','utf8');var m=h.match(/(<script[^>]*>[\\s\\S]*<\\/script>)/);if(m){var s=m[1];h=h.replace(s,'');h=h.replace('</body>',s+'</body>');}h=h.replace('type=\\\"module\\\" crossorigin','');f.writeFileSync('dist/index.html',h);console.log('Post-processed: script moved to end of body')\"",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "framer-motion": "^12.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "~5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.3.3"
+  }
+}

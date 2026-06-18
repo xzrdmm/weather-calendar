@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* === 基础样式 === */
+:root {
+  --temp-cold: #3b82f6;
+  --temp-cool: #60a5fa;
+  --temp-mild: #22c55e;
+  --temp-warm: #f59e0b;
+  --temp-hot: #ef4444;
+  --holiday-bg: #fef2f2;
+  --holiday-text: #dc2626;
+  --workday-bg: #fff7ed;
+  --workday-text: #ea580c;
+  --today-ring: #6366f1;
+}
+
+html, body, #root {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+/* === 日历网格 === */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+/* === 温度色阶 === */
+.temp-text {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* === 周末列着色 === */
+.calendar-grid > *:nth-child(7n+1) .day-label,
+.calendar-grid > *:nth-child(7n) .day-label {
+  color: #ef4444;
+}
+
+/* === 滑动动画辅助 === */
+.slide-container {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+/* === 下拉刷新 === */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  animation: spin 0.8s linear infinite;
+}

@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#f8fafc"/>
+<title>天气日历</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{--temp-cold:#3b82f6;--temp-cool:#60a5fa;--temp-mild:#22c55e;--temp-warm:#f59e0b;--temp-hot:#ef4444}
+html,body{height:100%;overscroll-behavior:none;margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}
+.spinner{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.slide-in{animation:slideIn .25s ease-out}@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.fade-in{animation:fadeIn .35s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.float{animation:float 2.5s ease-in-out infinite}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.city-dropdown{animation:dropIn .15s ease-out}@keyframes dropIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+<div id="app" class="max-w-md mx-auto min-h-screen flex flex-col px-3 pb-8"></div>
+
+<script>
+// ============ CITIES ============
+const CITIES=[{n:"北京",a:39.9042,o:116.4074},{n:"上海",a:31.2304,o:121.4737},{n:"天津",a:39.3434,o:117.3616},{n:"重庆",a:29.4316,o:106.9123},{n:"石家庄",a:38.0428,o:114.5149},{n:"唐山",a:39.6305,o:118.1802},{n:"秦皇岛",a:39.9354,o:119.5996},{n:"邯郸",a:36.6256,o:114.5390},{n:"邢台",a:37.0708,o:114.5047},{n:"保定",a:38.8739,o:115.4646},{n:"张家口",a:40.7686,o:114.8861},{n:"承德",a:40.9526,o:117.9632},{n:"沧州",a:38.3045,o:116.8388},{n:"廊坊",a:39.5377,o:116.6835},{n:"衡水",a:37.7389,o:115.6702},{n:"定州",a:38.5163,o:114.9900},{n:"辛集",a:37.9431,o:115.2178},{n:"太原",a:37.8706,o:112.5489},{n:"大同",a:40.0768,o:113.3001},{n:"阳泉",a:37.8567,o:113.5805},{n:"长治",a:36.1954,o:113.1164},{n:"晋城",a:35.4907,o:112.8518},{n:"朔州",a:39.3316,o:112.4320},{n:"晋中",a:37.6870,o:112.7528},{n:"运城",a:35.0265,o:111.0075},{n:"忻州",a:38.4161,o:112.7342},{n:"临汾",a:36.0880,o:111.5190},{n:"吕梁",a:37.5190,o:111.1443},{n:"呼和浩特",a:40.8424,o:111.7490},{n:"包头",a:40.6582,o:109.8404},{n:"乌海",a:39.6538,o:106.7955},{n:"赤峰",a:42.2586,o:118.8889},{n:"通辽",a:43.6529,o:122.2437},{n:"鄂尔多斯",a:39.6083,o:109.7809},{n:"呼伦贝尔",a:49.2116,o:119.7658},{n:"巴彦淖尔",a:40.7430,o:107.3876},{n:"乌兰察布",a:40.9940,o:113.1338},{n:"兴安盟",a:46.0820,o:122.0380},{n:"锡林郭勒",a:43.9334,o:116.0477},{n:"阿拉善盟",a:38.8519,o:105.7290},{n:"沈阳",a:41.8057,o:123.4315},{n:"大连",a:38.9140,o:121.6147},{n:"鞍山",a:41.1078,o:122.9946},{n:"抚顺",a:41.8797,o:123.9572},{n:"本溪",a:41.2941,o:123.7673},{n:"丹东",a:40.0005,o:124.3547},{n:"锦州",a:41.0951,o:121.1270},{n:"营口",a:40.6670,o:122.2354},{n:"阜新",a:42.0217,o:121.6703},{n:"辽阳",a:41.2681,o:123.2369},{n:"盘锦",a:41.1199,o:122.0708},{n:"铁岭",a:42.2862,o:123.8424},{n:"朝阳",a:41.5734,o:120.4508},{n:"葫芦岛",a:40.7110,o:120.8368},{n:"长春",a:43.8171,o:125.3235},{n:"吉林市",a:43.8378,o:126.5495},{n:"四平",a:43.1665,o:124.3504},{n:"辽源",a:42.8880,o:125.1446},{n:"通化",a:41.7284,o:125.9399},{n:"白山",a:41.9408,o:126.4244},{n:"松原",a:45.1416,o:124.8251},{n:"白城",a:45.6196,o:122.8387},{n:"延吉",a:42.8910,o:129.5089},{n:"哈尔滨",a:45.8038,o:126.5350},{n:"齐齐哈尔",a:47.3543,o:123.9182},{n:"鸡西",a:45.2952,o:130.9693},{n:"鹤岗",a:47.3499,o:130.2980},{n:"双鸭山",a:46.6465,o:131.1591},{n:"大庆",a:46.5893,o:125.1031},{n:"伊春",a:47.7275,o:128.8413},{n:"佳木斯",a:46.7998,o:130.3186},{n:"七台河",a:45.7706,o:131.0030},{n:"牡丹江",a:44.5526,o:129.6333},{n:"黑河",a:50.2452,o:127.5285},{n:"绥化",a:46.6534,o:126.9685},{n:"南京",a:32.0603,o:118.7969},{n:"无锡",a:31.4912,o:120.3124},{n:"徐州",a:34.2048,o:117.2848},{n:"常州",a:31.8107,o:119.9741},{n:"苏州",a:31.2990,o:120.5853},{n:"南通",a:31.9796,o:120.8943},{n:"连云港",a:34.5967,o:119.2212},{n:"淮安",a:33.6101,o:119.0153},{n:"盐城",a:33.3474,o:120.1631},{n:"扬州",a:32.3942,o:119.4129},{n:"镇江",a:32.1896,o:119.4250},{n:"泰州",a:32.4555,o:119.9231},{n:"宿迁",a:33.9619,o:118.2755},{n:"江阴",a:31.9210,o:120.2850},{n:"昆山",a:31.3846,o:120.9813},{n:"张家港",a:31.8756,o:120.5555},{n:"杭州",a:30.2741,o:120.1551},{n:"宁波",a:29.8683,o:121.5440},{n:"温州",a:27.9939,o:120.6994},{n:"嘉兴",a:30.7460,o:120.7556},{n:"湖州",a:30.8930,o:120.0870},{n:"绍兴",a:30.0303,o:120.5802},{n:"金华",a:29.0781,o:119.6476},{n:"衢州",a:28.9359,o:118.8742},{n:"舟山",a:29.9854,o:122.2078},{n:"台州",a:28.6561,o:121.4206},{n:"丽水",a:28.4676,o:119.9228},{n:"义乌",a:29.3067,o:120.0748},{n:"慈溪",a:30.1697,o:121.2664},{n:"合肥",a:31.8206,o:117.2272},{n:"芜湖",a:31.3526,o:118.4331},{n:"蚌埠",a:32.9163,o:117.3897},{n:"淮南",a:32.6255,o:117.0204},{n:"马鞍山",a:31.6707,o:118.5061},{n:"淮北",a:33.9558,o:116.7983},{n:"铜陵",a:30.9446,o:117.8115},{n:"安庆",a:30.5088,o:117.0436},{n:"黄山",a:29.7147,o:118.3375},{n:"滁州",a:32.2558,o:118.3330},{n:"阜阳",a:32.8896,o:115.8145},{n:"宿州",a:33.6476,o:116.9639},{n:"六安",a:31.7359,o:116.5219},{n:"亳州",a:33.8446,o:115.7790},{n:"池州",a:30.6647,o:117.4914},{n:"宣城",a:30.9407,o:118.7588},{n:"福州",a:26.0745,o:119.2965},{n:"厦门",a:24.4798,o:118.0894},{n:"莆田",a:25.4540,o:119.0077},{n:"三明",a:26.2634,o:117.6392},{n:"泉州",a:24.8741,o:118.6759},{n:"漳州",a:24.5130,o:117.6473},{n:"南平",a:26.6416,o:118.1780},{n:"龙岩",a:25.0750,o:117.0175},{n:"宁德",a:26.6656,o:119.5477},{n:"晋江",a:24.7816,o:118.5524},{n:"南昌",a:28.6820,o:115.8582},{n:"景德镇",a:29.2687,o:117.1783},{n:"萍乡",a:27.6228,o:113.8547},{n:"九江",a:29.7051,o:116.0019},{n:"新余",a:27.8178,o:114.9174},{n:"鹰潭",a:28.2602,o:117.0692},{n:"赣州",a:25.8310,o:114.9348},{n:"吉安",a:27.1138,o:114.9929},{n:"宜春",a:27.8144,o:114.4168},{n:"抚州",a:27.9490,o:116.3581},{n:"上饶",a:28.4549,o:117.9433},{n:"济南",a:36.6512,o:116.9972},{n:"青岛",a:36.0671,o:120.3826},{n:"淄博",a:36.8131,o:118.0550},{n:"枣庄",a:34.8109,o:117.3237},{n:"东营",a:37.4347,o:118.6747},{n:"烟台",a:37.4635,o:121.4480},{n:"潍坊",a:36.7068,o:119.1618},{n:"济宁",a:35.4146,o:116.5872},{n:"泰安",a:36.2000,o:117.0876},{n:"威海",a:37.5131,o:122.1204},{n:"日照",a:35.4164,o:119.5272},{n:"临沂",a:35.1047,o:118.3564},{n:"德州",a:37.4341,o:116.3575},{n:"聊城",a:36.4570,o:115.9854},{n:"滨州",a:37.3811,o:117.9728},{n:"菏泽",a:35.2336,o:115.4806},{n:"郑州",a:34.7466,o:113.6254},{n:"开封",a:34.7973,o:114.3076},{n:"洛阳",a:34.6181,o:112.4539},{n:"平顶山",a:33.7662,o:113.1926},{n:"安阳",a:36.1030,o:114.3931},{n:"鹤壁",a:35.7472,o:114.2973},{n:"新乡",a:35.3037,o:113.9267},{n:"焦作",a:35.2156,o:113.2420},{n:"濮阳",a:35.7618,o:115.0293},{n:"许昌",a:34.0357,o:113.8526},{n:"漯河",a:33.5814,o:114.0165},{n:"三门峡",a:34.7726,o:111.2003},{n:"南阳",a:32.9918,o:112.5285},{n:"商丘",a:34.4144,o:115.6563},{n:"信阳",a:32.1473,o:114.0928},{n:"周口",a:33.6260,o:114.6969},{n:"驻马店",a:32.9774,o:114.0223},{n:"济源",a:35.0671,o:112.6023},{n:"武汉",a:30.5928,o:114.3055},{n:"黄石",a:30.1995,o:115.0390},{n:"十堰",a:32.6299,o:110.7979},{n:"宜昌",a:30.6919,o:111.2864},{n:"襄阳",a:32.0090,o:112.1224},{n:"鄂州",a:30.3907,o:114.8949},{n:"荆门",a:31.0355,o:112.1998},{n:"孝感",a:30.9249,o:113.9570},{n:"荆州",a:30.3347,o:112.2407},{n:"黄冈",a:30.4537,o:114.8723},{n:"咸宁",a:29.8413,o:114.3227},{n:"随州",a:31.6902,o:113.3826},{n:"恩施",a:30.2831,o:109.4867},{n:"仙桃",a:30.3625,o:113.4537},{n:"潜江",a:30.4015,o:112.8998},{n:"天门",a:30.6633,o:113.1661},{n:"长沙",a:28.2282,o:112.9388},{n:"株洲",a:27.8277,o:113.1340},{n:"湘潭",a:27.8296,o:112.9441},{n:"衡阳",a:26.8932,o:112.5720},{n:"邵阳",a:27.2389,o:111.4677},{n:"岳阳",a:29.3571,o:113.1292},{n:"常德",a:29.0317,o:111.6985},{n:"张家界",a:29.1170,o:110.4784},{n:"益阳",a:28.5539,o:112.3550},{n:"郴州",a:25.7705,o:113.0148},{n:"永州",a:26.4203,o:111.6134},{n:"怀化",a:27.5695,o:109.9985},{n:"娄底",a:27.7001,o:111.9945},{n:"湘西",a:28.3117,o:109.7390},{n:"广州",a:23.1291,o:113.2644},{n:"韶关",a:24.8014,o:113.5976},{n:"深圳",a:22.5431,o:114.0579},{n:"珠海",a:22.2707,o:113.5767},{n:"汕头",a:23.3535,o:116.6822},{n:"佛山",a:23.0218,o:113.1214},{n:"江门",a:22.5787,o:113.0816},{n:"湛江",a:21.2710,o:110.3589},{n:"茂名",a:21.6632,o:110.9252},{n:"肇庆",a:23.0470,o:112.4651},{n:"惠州",a:23.1107,o:114.4168},{n:"梅州",a:24.2886,o:116.1225},{n:"汕尾",a:22.7866,o:115.3752},{n:"河源",a:23.7437,o:114.7006},{n:"阳江",a:21.8583,o:111.9826},{n:"清远",a:23.6820,o:113.0560},{n:"东莞",a:23.0208,o:113.7518},{n:"中山",a:22.5165,o:113.3926},{n:"潮州",a:23.6569,o:116.6226},{n:"揭阳",a:23.5497,o:116.3727},{n:"云浮",a:22.9152,o:112.0445},{n:"南宁",a:22.8170,o:108.3665},{n:"柳州",a:24.3264,o:109.4285},{n:"桂林",a:25.2350,o:110.1796},{n:"梧州",a:23.4769,o:111.2792},{n:"北海",a:21.4811,o:109.1199},{n:"防城港",a:21.6869,o:108.3547},{n:"钦州",a:21.9797,o:108.6543},{n:"贵港",a:23.1115,o:109.5989},{n:"玉林",a:22.6540,o:110.1809},{n:"百色",a:23.9022,o:106.6181},{n:"贺州",a:24.4035,o:111.5665},{n:"河池",a:24.6929,o:108.0854},{n:"来宾",a:23.7502,o:109.2222},{n:"崇左",a:22.3789,o:107.3650},{n:"海口",a:20.0440,o:110.1999},{n:"三亚",a:18.2528,o:109.5120},{n:"三沙",a:16.8310,o:112.3384},{n:"儋州",a:19.5209,o:109.5807},{n:"琼海",a:19.2580,o:110.4746},{n:"成都",a:30.5728,o:104.0668},{n:"自贡",a:29.3392,o:104.7784},{n:"攀枝花",a:26.5824,o:101.7186},{n:"泸州",a:28.8717,o:105.4423},{n:"德阳",a:31.1270,o:104.3979},{n:"绵阳",a:31.4675,o:104.6786},{n:"广元",a:32.4355,o:105.8435},{n:"遂宁",a:30.5328,o:105.5929},{n:"内江",a:29.5802,o:105.0584},{n:"乐山",a:29.5521,o:103.7656},{n:"南充",a:30.8378,o:106.1107},{n:"眉山",a:30.0768,o:103.8485},{n:"宜宾",a:28.7512,o:104.6433},{n:"广安",a:30.4560,o:106.6333},{n:"达州",a:31.2096,o:107.4679},{n:"雅安",a:29.9807,o:103.0132},{n:"巴中",a:31.8671,o:106.7475},{n:"资阳",a:30.1289,o:104.6276},{n:"阿坝",a:31.8994,o:102.2248},{n:"甘孜",a:30.0493,o:101.9623},{n:"凉山",a:27.8816,o:102.2673},{n:"贵阳",a:26.6470,o:106.6302},{n:"六盘水",a:26.5925,o:104.8303},{n:"遵义",a:27.7254,o:106.9274},{n:"安顺",a:26.2531,o:105.9476},{n:"毕节",a:27.2986,o:105.3050},{n:"铜仁",a:27.7315,o:109.1896},{n:"黔西南",a:25.0899,o:104.9044},{n:"黔东南",a:26.5834,o:107.9841},{n:"黔南",a:26.2541,o:107.5222},{n:"昆明",a:25.0389,o:102.7183},{n:"曲靖",a:25.4900,o:103.7962},{n:"玉溪",a:24.3518,o:102.5466},{n:"保山",a:25.1120,o:99.1690},{n:"昭通",a:27.3380,o:103.7168},{n:"丽江",a:26.8721,o:100.2296},{n:"普洱",a:22.8252,o:100.9665},{n:"临沧",a:23.8842,o:100.0888},{n:"楚雄",a:25.0329,o:101.5456},{n:"红河",a:23.3668,o:103.3746},{n:"文山",a:23.3985,o:104.2150},{n:"西双版纳",a:22.0090,o:100.7973},{n:"大理",a:25.6065,o:100.2676},{n:"德宏",a:24.4330,o:98.5849},{n:"怒江",a:25.8237,o:98.8567},{n:"迪庆",a:27.8195,o:99.7030},{n:"拉萨",a:29.6500,o:91.1000},{n:"日喀则",a:29.2636,o:88.8851},{n:"昌都",a:31.1407,o:97.1720},{n:"林芝",a:29.6488,o:94.3615},{n:"山南",a:29.2371,o:91.7731},{n:"那曲",a:31.4762,o:92.0512},{n:"阿里",a:32.5007,o:80.1050},{n:"西安",a:34.3416,o:108.9398},{n:"铜川",a:34.8967,o:108.9451},{n:"宝鸡",a:34.3632,o:107.2377},{n:"咸阳",a:34.3293,o:108.7093},{n:"渭南",a:34.4990,o:109.5098},{n:"延安",a:36.5855,o:109.4897},{n:"汉中",a:33.0676,o:107.0238},{n:"榆林",a:38.2852,o:109.7346},{n:"安康",a:32.6848,o:109.0293},{n:"商洛",a:33.8733,o:109.9182},{n:"兰州",a:36.0611,o:103.8343},{n:"嘉峪关",a:39.7719,o:98.2899},{n:"金昌",a:38.5201,o:102.1880},{n:"白银",a:36.5447,o:104.1387},{n:"天水",a:34.5809,o:105.7249},{n:"武威",a:37.9283,o:102.6382},{n:"张掖",a:38.9259,o:100.4498},{n:"平凉",a:35.5430,o:106.6649},{n:"酒泉",a:39.7325,o:98.4940},{n:"庆阳",a:35.7098,o:107.6436},{n:"定西",a:35.5811,o:104.6258},{n:"陇南",a:33.4007,o:104.9218},{n:"临夏",a:35.6012,o:103.2430},{n:"甘南",a:34.9834,o:102.9110},{n:"西宁",a:36.6171,o:101.7785},{n:"海东",a:36.5019,o:102.1043},{n:"海北",a:36.9544,o:100.9010},{n:"黄南",a:35.5199,o:102.0152},{n:"海南州",a:36.2963,o:100.6206},{n:"果洛",a:34.4714,o:100.2448},{n:"玉树",a:32.9932,o:97.0065},{n:"海西",a:37.3771,o:97.3712},{n:"银川",a:38.4872,o:106.2309},{n:"石嘴山",a:38.9841,o:106.3833},{n:"吴忠",a:37.9975,o:106.1982},{n:"固原",a:36.0158,o:106.2426},{n:"中卫",a:37.5000,o:105.1968},{n:"乌鲁木齐",a:43.8256,o:87.6168},{n:"克拉玛依",a:45.5799,o:84.8892},{n:"吐鲁番",a:42.9476,o:89.1888},{n:"哈密",a:42.8194,o:93.5152},{n:"昌吉",a:44.0112,o:87.2675},{n:"博尔塔拉",a:44.9059,o:82.0666},{n:"巴音郭楞",a:41.7640,o:86.1453},{n:"阿克苏",a:41.1688,o:80.2606},{n:"克孜勒苏",a:39.7145,o:76.1678},{n:"喀什",a:39.4677,o:75.9897},{n:"和田",a:37.1136,o:79.9225},{n:"伊犁",a:43.9170,o:81.3241},{n:"塔城",a:46.7454,o:82.9803},{n:"阿勒泰",a:47.8449,o:88.1413},{n:"石河子",a:44.3064,o:86.0789}];
+
+// ============ HOLIDAY DATA (embedded fallback) ============
+const HOLIDAY_DATA={'2025-01-01':{d:'2025-01-01',t:'holiday',n:'元旦'},'2025-01-28':{d:'2025-01-28',t:'holiday',n:'春节'},'2025-01-29':{d:'2025-01-29',t:'holiday',n:'春节'},'2025-01-30':{d:'2025-01-30',t:'holiday',n:'春节'},'2025-01-31':{d:'2025-01-31',t:'holiday',n:'春节'},'2025-02-01':{d:'2025-02-01',t:'holiday',n:'春节'},'2025-02-02':{d:'2025-02-02',t:'holiday',n:'春节'},'2025-02-03':{d:'2025-02-03',t:'holiday',n:'春节'},'2025-02-04':{d:'2025-02-04',t:'holiday',n:'春节'},'2025-01-26':{d:'2025-01-26',t:'workday',n:'春节调休'},'2025-02-08':{d:'2025-02-08',t:'workday',n:'春节调休'},'2025-04-04':{d:'2025-04-04',t:'holiday',n:'清明节'},'2025-04-05':{d:'2025-04-05',t:'holiday',n:'清明节'},'2025-04-06':{d:'2025-04-06',t:'holiday',n:'清明节'},'2025-05-01':{d:'2025-05-01',t:'holiday',n:'劳动节'},'2025-05-02':{d:'2025-05-02',t:'holiday',n:'劳动节'},'2025-05-03':{d:'2025-05-03',t:'holiday',n:'劳动节'},'2025-05-04':{d:'2025-05-04',t:'holiday',n:'劳动节'},'2025-05-05':{d:'2025-05-05',t:'holiday',n:'劳动节'},'2025-04-27':{d:'2025-04-27',t:'workday',n:'劳动节调休'},'2025-05-31':{d:'2025-05-31',t:'holiday',n:'端午节'},'2025-06-01':{d:'2025-06-01',t:'holiday',n:'端午节'},'2025-06-02':{d:'2025-06-02',t:'holiday',n:'端午节'},'2025-10-01':{d:'2025-10-01',t:'holiday',n:'国庆·中秋'},'2025-10-02':{d:'2025-10-02',t:'holiday',n:'国庆节'},'2025-10-03':{d:'2025-10-03',t:'holiday',n:'国庆节'},'2025-10-04':{d:'2025-10-04',t:'holiday',n:'国庆节'},'2025-10-05':{d:'2025-10-05',t:'holiday',n:'国庆节'},'2025-10-06':{d:'2025-10-06',t:'holiday',n:'国庆节'},'2025-10-07':{d:'2025-10-07',t:'holiday',n:'国庆节'},'2025-10-08':{d:'2025-10-08',t:'holiday',n:'国庆节'},'2025-09-28':{d:'2025-09-28',t:'workday',n:'国庆调休'},'2025-10-11':{d:'2025-10-11',t:'workday',n:'国庆调休'},'2026-01-01':{d:'2026-01-01',t:'holiday',n:'元旦'},'2026-01-02':{d:'2026-01-02',t:'holiday',n:'元旦'},'2026-01-03':{d:'2026-01-03',t:'holiday',n:'元旦'},'2026-02-16':{d:'2026-02-16',t:'holiday',n:'春节'},'2026-02-17':{d:'2026-02-17',t:'holiday',n:'春节'},'2026-02-18':{d:'2026-02-18',t:'holiday',n:'春节'},'2026-02-19':{d:'2026-02-19',t:'holiday',n:'春节'},'2026-02-20':{d:'2026-02-20',t:'holiday',n:'春节'},'2026-02-21':{d:'2026-02-21',t:'holiday',n:'春节'},'2026-02-22':{d:'2026-02-22',t:'holiday',n:'春节'},'2026-02-23':{d:'2026-02-23',t:'holiday',n:'春节'},'2026-02-14':{d:'2026-02-14',t:'workday',n:'春节调休'},'2026-02-28':{d:'2026-02-28',t:'workday',n:'春节调休'},'2026-04-05':{d:'2026-04-05',t:'holiday',n:'清明节'},'2026-04-06':{d:'2026-04-06',t:'holiday',n:'清明节'},'2026-04-04':{d:'2026-04-04',t:'workday',n:'清明调休'},'2026-05-01':{d:'2026-05-01',t:'holiday',n:'劳动节'},'2026-05-02':{d:'2026-05-02',t:'holiday',n:'劳动节'},'2026-05-03':{d:'2026-05-03',t:'holiday',n:'劳动节'},'2026-05-04':{d:'2026-05-04',t:'holiday',n:'劳动节'},'2026-05-05':{d:'2026-05-05',t:'holiday',n:'劳动节'},'2026-05-09':{d:'2026-05-09',t:'workday',n:'劳动节调休'},'2026-06-19':{d:'2026-06-19',t:'holiday',n:'端午节'},'2026-06-20':{d:'2026-06-20',t:'holiday',n:'端午节'},'2026-06-21':{d:'2026-06-21',t:'holiday',n:'端午节'},'2026-06-13':{d:'2026-06-13',t:'workday',n:'端午调休'},'2026-09-25':{d:'2026-09-25',t:'holiday',n:'中秋节'},'2026-09-26':{d:'2026-09-26',t:'holiday',n:'中秋节'},'2026-09-27':{d:'2026-09-27',t:'holiday',n:'中秋节'},'2026-09-20':{d:'2026-09-20',t:'workday',n:'中秋调休'},'2026-10-01':{d:'2026-10-01',t:'holiday',n:'国庆节'},'2026-10-02':{d:'2026-10-02',t:'holiday',n:'国庆节'},'2026-10-03':{d:'2026-10-03',t:'holiday',n:'国庆节'},'2026-10-04':{d:'2026-10-04',t:'holiday',n:'国庆节'},'2026-10-05':{d:'2026-10-05',t:'holiday',n:'国庆节'},'2026-10-06':{d:'2026-10-06',t:'holiday',n:'国庆节'},'2026-10-07':{d:'2026-10-07',t:'holiday',n:'国庆节'},'2026-09-28':{d:'2026-09-28',t:'workday',n:'国庆调休'},'2026-10-10':{d:'2026-10-10',t:'workday',n:'国庆调休'}};
+
+// ============ TRAD HOLIDAYS ============
+const TRAD_HOLS={"2020":"0101-元旦,0124-除夕,0125-春节,0208-元宵,0404-清明,0501-劳动,0625-端午,0825-七夕,1001-中秋·国庆,1002-国庆,1003-国庆,1025-重阳","2021":"0101-元旦,0211-除夕,0212-春节,0226-元宵,0404-清明,0501-劳动,0614-端午,0814-七夕,0921-中秋,1001-国庆,1002-国庆,1003-国庆,1014-重阳","2022":"0101-元旦,0131-除夕,0201-春节,0215-元宵,0405-清明,0501-劳动,0603-端午,0804-七夕,0910-中秋,1001-国庆,1002-国庆,1003-国庆,1004-重阳","2023":"0101-元旦,0121-除夕,0122-春节,0205-元宵,0405-清明,0501-劳动,0622-端午,0822-七夕,0929-中秋,1001-国庆,1002-国庆,1003-国庆,1023-重阳","2024":"0101-元旦,0209-除夕,0210-春节,0224-元宵,0404-清明,0501-劳动,0610-端午,0810-七夕,0917-中秋,1001-国庆,1002-国庆,1003-国庆,1011-重阳","2025":"0101-元旦,0128-除夕,0129-春节,0212-元宵,0404-清明,0501-劳动,0531-端午,0829-七夕,1001-国庆,1002-国庆,1003-国庆,1006-中秋,1029-重阳","2026":"0101-元旦,0216-除夕,0217-春节,0303-元宵,0405-清明,0501-劳动,0619-端午,0819-七夕,0925-中秋,1001-国庆,1002-国庆,1003-国庆,1018-重阳","2027":"0101-元旦,0205-除夕,0206-春节,0220-元宵,0405-清明,0501-劳动,0609-端午,0808-七夕,0915-中秋,1001-国庆,1002-国庆,1003-国庆,1008-重阳","2028":"0101-元旦,0125-除夕,0126-春节,0209-元宵,0404-清明,0501-劳动,0528-端午,0826-七夕,1001-国庆,1002-国庆,1003-中秋·国庆,1026-重阳","2029":"0101-元旦,0212-除夕,0213-春节,0227-元宵,0404-清明,0501-劳动,0616-端午,0814-七夕,0922-中秋,1001-国庆,1002-国庆,1003-国庆,1016-重阳","2030":"0101-元旦,0202-除夕,0203-春节,0217-元宵,0405-清明,0501-劳动,0605-端午,0805-七夕,0912-中秋,1001-国庆,1002-国庆,1003-国庆,1005-重阳,1231-除夕"};function getTradHoliday(ds){var p=ds.split("-");var y=p[0];var k=p[1]+p[2];var e=TRAD_HOLS[y];if(!e)return null;var f=e.split(",").find(function(x){return x.startsWith(k)});if(!f)return null;var nm=f.split("-")[1];return{d:ds,t:"holiday",n:nm};}
+
+// ============ API & UTILS ============
+const $=s=>document.querySelector(s);
+function h(tag,cls,attrs={},...children){
+  const el=document.createElement(tag);
+  if(cls)el.className=cls;
+  for(const[k,v]of Object.entries(attrs)){if(k.startsWith('on'))el.addEventListener(k.slice(2),v);else if(k==='html')el.innerHTML=v;else el.setAttribute(k,v)}
+  for(const c of children){if(typeof c==='string')el.appendChild(document.createTextNode(c));else if(c instanceof Node)el.appendChild(c)}
+  return el;
+}
+function fds(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${day}`}
+function isToday(d){return fds(d)===fds(new Date())}
+function isWeekend(d){const w=d.getDay();return w===0||w===6}
+function getDIM(y,m){return new Date(y,m+1,0).getDate()}
+function getFDOM(y,m){return new Date(y,m,1).getDay()}
+const WDAYS=['日','一','二','三','四','五','六'];
+const MONTHS=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+
+function weatherDesc(code,t){
+var m={0:['☀️','晴朗'],1:['🌤️','大部晴'],2:['⛅','多云'],3:['☁️','阴天'],45:['🌫️','雾'],48:['🌫️','雾凇'],51:['🌦️','小毛毛雨'],53:['🌦️','毛毛雨'],55:['🌧️','大毛毛雨'],56:['🌧️','冻毛毛雨'],57:['🌧️','大冻毛毛雨'],61:['🌦️','小雨'],63:['🌧️','中雨'],65:['🌧️','大雨'],66:['🌧️','冻雨'],67:['🌧️','大冻雨'],71:['🌨️','小雪'],73:['❄️','中雪'],75:['❄️','大雪'],77:['❄️','雪粒'],80:['🌦️','阵雨'],81:['🌧️','大阵雨'],82:['🌧️','暴阵雨'],85:['🌨️','小阵雪'],86:['❄️','大阵雪'],95:['⛈️','雷暴'],96:['⛈️','雷暴+小冰雹'],99:['⛈️','雷暴+大冰雹']};
+var tp=t!=null?t:20;
+// 雪在>5°C→雨
+if((code>=71&&code<=77||code>=85&&code<=86)&&tp>5)return['🌧️','雨'];
+// 冰雹在>25°C→落地融化，改为雷阵雨
+if((code===96||code===99)&&tp>25)return['⛈️','雷阵雨'];
+if(code in m)return m[code];
+if(code<=3)return['🌤️','晴间多云'];if(code<=19)return['⛅','多云'];if(code<=49)return['🌫️','雾/霾'];
+if(code<=59)return['🌦️','毛毛雨'];if(code<=69)return['🌧️','雨'];if(code<=79)return['❄️','雪'];
+if(code<=84)return['🌦️','阵雨'];if(code<=86)return['🌨️','阵雪'];if(code===95)return['⛈️','雷暴'];
+if(code<=99)return['⛈️','雷暴+冰雹'];return['🌈','—'];
+}
+async function fetchWeather(lat,lon,days=7){
+  const p=new URLSearchParams({latitude:lat,longitude:lon,current_weather:'true',daily:'temperature_2m_max,temperature_2m_min,weathercode,windspeed_10m_max,precipitation_sum',hourly:'relative_humidity_2m',timezone:'Asia/Shanghai',forecast_days:days});
+  const r=await fetch(`https://api.open-meteo.com/v1/forecast?${p}`);
+  if(!r.ok)throw new Error(`API ${r.status}`);
+  const j=await r.json();
+  var cur=null;
+  if(j.current_weather){
+    var ch=60,ct=j.current_weather.time;if(ct&&j.hourly&&j.hourly.relative_humidity_2m){var ck=ct.substring(0,13);for(var h=0;h<j.hourly.time.length;h++){if(j.hourly.time[h].startsWith(ck)){ch=j.hourly.relative_humidity_2m[h];break}}}
+    cur={temp:j.current_weather.temperature,hum:ch,wc:j.current_weather.weathercode,ws:j.current_weather.windspeed,time:ct};
+  }
+  var dh=[];
+  if(j.hourly&&j.hourly.relative_humidity_2m){
+    for(var d=0;d<j.daily.time.length;d++){
+      var dd=j.daily.time[d],s=0,c=0;
+      for(var h=0;h<j.hourly.time.length;h++){
+        if(j.hourly.time[h].startsWith(dd)){s+=j.hourly.relative_humidity_2m[h];c++}
+      }
+      dh.push(c>0?Math.round(s/c):60);
+    }
+  }
+  var daysArr=j.daily.time.map(function(t,i){return {date:t,tMax:j.daily.temperature_2m_max[i],tMin:j.daily.temperature_2m_min[i],hum:dh[i]||60,wc:j.daily.weathercode[i],ws:j.daily.windspeed_10m_max[i],precip:j.daily.precipitation_sum[i]};});
+  return {current:cur,daily:daysArr};
+}
+const CK='wcv2';const CTL=30*60*1000;
+function getCache(lat,lon){try{const r=localStorage.getItem(CK);if(!r)return null;const c=JSON.parse(r);if(Date.now()-c.t>CTL)return null;if(Math.abs(c.lat-lat)>0.05||Math.abs(c.lon-lon)>0.05)return null;return c.d}catch{return null}}
+function setCache(lat,lon,d){localStorage.setItem(CK,JSON.stringify({d,t:Date.now(),lat,lon}))}
+
+// Holiday API (timor.tech, free)
+const holidayCache={};
+async function fetchHolidays(y){
+  if(holidayCache[y])return holidayCache[y];
+  try{
+    const r=await fetch(`https://timor.tech/api/holiday/year/${y}`,{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    if(j.code!==0)throw new Error('API error');
+    const map={};
+    const hols=j.holiday||{};
+    for(const[k,v]of Object.entries(hols)){
+      const ds=v.date||`${y}-${k}`;
+      map[ds]={d:ds,t:v.holiday?'holiday':'workday',n:v.name||(v.holiday?'节假日':'调休上班')};
+    }
+    holidayCache[y]=map;
+    return map;
+  }catch{return null}
+}
+function getHoliday(ds){
+  if(state.holidayMap&&state.holidayMap[ds])return state.holidayMap[ds];
+  return HOLIDAY_DATA[ds];
+}
+async function loadHolidays(y,m){
+  const api=await fetchHolidays(y);
+  const map={};
+  const tm=m+1;
+  if(api){for(const[k,v]of Object.entries(api)){const parts=k.split('-');if(parseInt(parts[1])===tm)map[k]=v;}}
+  // merge embedded
+  for(const[k,v]of Object.entries(HOLIDAY_DATA)){const parts=k.split('-');if(parseInt(parts[0])===y&&parseInt(parts[1])===tm&&!map[k])map[k]=v;}
+  state.holidayMap=map;
+}
+
+function getClothing(tMax,tMin,hum,wSpd,precip){
+  const a=(tMax+tMin)/2;let i,t;
+  if(a>35){i='🩳';t='短袖短裤，注意防晒'}else if(a>28){i='👕';t='短袖，轻薄透气'}else if(a>20){i='👔';t='薄长袖 / 衬衫'}else if(a>12){i='🧥';t='薄外套 + 长裤'}else if(a>5){i='🧥';t='厚外套 / 毛衣'}else if(a>-5){i='🧣';t='羽绒服 / 棉服'}else{i='🧤';t='最厚冬装，围巾手套'}
+  const ex=[];
+  if(tMax-tMin>12)ex.push('昼夜温差大，注意增减衣物');
+  if(precip>0.5){ex.push('带伞 ☔');if(a<15)ex.push('穿防水外套')}else if(hum>85)ex.push('湿度大，注意防潮');
+  if(wSpd>40)ex.push('风力较强，穿防风外套 🍃');
+  return{icon:i,text:t,detail:ex.length?ex.join(' · '):'天气舒适，祝您愉快 ☀️'};
+}
+function tempClr(t){if(t<=0)return'text-blue-500';if(t<=10)return'text-blue-400';if(t<=20)return'text-green-500';if(t<=28)return'text-amber-500';return'text-red-500'}
+
+// ============ STATE ============
+let state={year:new Date().getFullYear(),month:new Date().getMonth(),weather:[],cur:null,loading:true,error:null,lat:31.2304,lon:121.4737,city:'上海',holidayMap:null,cityOpen:false,citySearch:''};
+
+// ============ CALENDAR BUILD ============
+function buildGrid(y,m,wm){
+  const days=[],dim=getDIM(y,m),fd=getFDOM(y,m);
+  const pm=m===0?11:m-1,py=m===0?y-1:y,pDim=getDIM(py,pm);
+  for(let i=fd-1;i>=0;i--){const d=new Date(py,pm,pDim-i),ds=fds(d);days.push({date:d,ds,dom:pDim-i,isT:isToday(d),isW:isWeekend(d),isCM:false,w:wm.get(ds),h:getHoliday(ds)});}
+  for(let i=1;i<=dim;i++){const d=new Date(y,m,i),ds=fds(d);days.push({date:d,ds,dom:i,isT:isToday(d),isW:isWeekend(d),isCM:true,w:wm.get(ds),h:getHoliday(ds)});}
+  const rem=42-days.length,nm=m===11?0:m+1,ny=m===11?y+1:y;
+  for(let i=1;i<=rem;i++){const d=new Date(ny,nm,i),ds=fds(d);days.push({date:d,ds,dom:i,isT:isToday(d),isW:isWeekend(d),isCM:false,w:wm.get(ds),h:getHoliday(ds)});}
+  return days;
+}
+
+function renderDayCell(day){
+  let bg='';let nc='text-xs font-semibold leading-none mb-0.5';
+  if(!day.isCM)bg='opacity-30';
+  if(day.isT){bg+=' bg-indigo-50 ring-2 ring-indigo-400 shadow-sm';nc+=' text-indigo-600'}
+  else if(day.h?.t==='holiday'){bg+=' bg-red-50/70';nc+=' text-red-500'}
+  else if(day.h?.t==='workday'){bg+=' bg-orange-50/50';nc+=' text-red-400'}
+  else if(day.isW)nc+=' text-red-400';else nc+=' text-slate-600';
+  const cell=h('div','relative flex flex-col items-center py-1.5 px-0.5 rounded-lg'+bg);
+  cell.appendChild(h('span',nc,{},String(day.dom)));
+  if(day.h?.t==='holiday')cell.appendChild(h('span','text-[10px] text-red-500 font-medium truncate leading-tight',{},day.h.n));
+  else if(day.h?.t==='workday')cell.appendChild(h('span','text-[10px] text-orange-500 font-medium truncate leading-tight',{},day.h.n));
+  else if(day.isW&&day.isCM)cell.appendChild(h('span','text-[10px] text-slate-300 leading-tight',{},day.dom%7===0?'周日':'周六'));
+  if(day.w&&day.isCM){
+    var avgt=day.w?(day.w.tMax+day.w.tMin)/2:20;const[ic]=weatherDesc(day.w.wc,avgt);
+    cell.appendChild(h('span','text-lg float inline-block',{},ic));
+    const ts=h('span','temp-text text-[10px] inline-flex items-center gap-0.5');
+    ts.appendChild(h('span',tempClr(day.w.tMax),{},Math.round(day.w.tMax)+'°'));
+    ts.appendChild(h('span','text-slate-300',{},'/'));
+    ts.appendChild(h('span',tempClr(day.w.tMin),{},Math.round(day.w.tMin)+'°'));
+    cell.appendChild(ts);
+    const hCls=day.w.hum>85?'text-cyan-600':day.w.hum>70?'text-cyan-500':day.w.hum<25?'text-amber-500':'text-slate-400';
+    cell.appendChild(h('span','text-[10px] '+hCls+' inline-flex items-center gap-0.5',{},'💧'+day.w.hum+'%'));
+  }
+  return cell;
+}
+
+// ============ RENDER ============
+function render(){
+  const app=$('#app');app.innerHTML='';
+  const wm=new Map();state.weather.forEach(w=>wm.set(w.date,w));
+  const days=buildGrid(state.year,state.month,wm);
+  const ts=fds(new Date());
+  const tw=wm.get(ts),th=getHoliday(ts);
+
+  // Header
+  const hdr=h('header','pt-6 pb-2 px-1');
+  const hr=h('div','flex items-center justify-between');
+  const hl=h('div');
+  hl.appendChild(h('h1','text-xl font-bold tracking-tight text-slate-800',{},'天气日历'));
+  // City picker
+  const cp=h('div','relative inline-block mt-0.5');
+  const cBtn=h('button','text-xs text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-2 decoration-dotted',{onclick:e=>{e.stopPropagation();state.cityOpen=!state.cityOpen;render();}},(state.city||'选择城市'));
+  cp.appendChild(cBtn);
+  if(state.cityOpen){
+    const dd=h('div','city-dropdown absolute top-6 left-0 z-50 w-44 max-h-60 overflow-y-auto bg-white rounded-xl shadow-lg border border-slate-200 py-1');
+    const si=h('input','w-full text-xs px-2 py-1.5 border-b border-slate-100 focus:outline-none',{type:'text',placeholder:'搜索城市...',value:state.citySearch});
+    si.addEventListener('input',e=>{state.citySearch=e.target.value;render();});
+    dd.appendChild(si);
+    const q=state.citySearch.trim().toLowerCase();
+    const list=q?CITIES.filter(c=>c.name.includes(q)):CITIES;
+    list.forEach(c=>{dd.appendChild(h('button','w-full text-left px-3 py-1.5 text-sm transition-colors'+(c.name===state.city?' bg-indigo-50 text-indigo-600 font-medium':' text-slate-600 hover:bg-slate-50'),{onclick:()=>{selectCity(c);}},(c.name)));});
+    if(!list.length)dd.appendChild(h('p','text-xs text-slate-400 text-center py-2',{},'无匹配'));
+    cp.appendChild(dd);
+    setTimeout(()=>{document.addEventListener('mousedown',function f(e){if(!cp.contains(e.target)){state.cityOpen=false;render();document.removeEventListener('mousedown',f);}},{once:false});},0);
+  }
+  if(state.error)cp.appendChild(h('span','text-amber-500 text-xs ml-1',{},'· '+state.error));
+  hl.appendChild(cp);
+  hr.appendChild(hl);
+  const refBtn=h('button','w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-white active:bg-slate-200 transition-colors',{onclick:refreshAll},'⟳');
+  if(state.loading)refBtn.className+=' spinner';
+  hr.appendChild(refBtn);
+  hdr.appendChild(hr);
+  app.appendChild(hdr);
+
+  // Today
+  const ts2=h('section','mb-4 fade-in');
+  if(state.loading){ts2.appendChild(h('div','flex items-center justify-center py-10',{},h('div','spinner w-8 h-8 border-2 border-indigo-300 border-t-indigo-500 rounded-full')));}
+  else if(tw){
+    const card=h('div','bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-3');
+    // 当前温度（大字）
+    if(state.cur){
+      var cRow=h('div','flex items-center gap-3 pb-3 border-b border-slate-50');
+      var cTemp=h('div','flex items-baseline gap-1');
+      cTemp.appendChild(h('span','text-4xl font-bold text-slate-800 tracking-tight',{},String(Math.round(state.cur.temp))));
+      cTemp.appendChild(h('span','text-lg text-slate-400',{},'°C'));
+      cRow.appendChild(cTemp);
+      var cInfo=h('div','flex flex-col gap-0.5');
+      var ci=weatherDesc(state.cur.wc,state.cur.temp);
+      cInfo.appendChild(h('span','text-xs text-slate-400',{},ci[0]+' '+ci[1]));
+      cInfo.appendChild(h('span','text-xs text-slate-400',{},'💧 '+state.cur.hum+'% · 💨 '+state.cur.ws+' km/h'));
+      cRow.appendChild(cInfo);
+      var cTime=h('div','ml-auto text-right');
+      var dt2=new Date(state.cur.time);
+      cTime.appendChild(h('span','text-[10px] text-slate-300',{},dt2.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+' 更新'));
+      cRow.appendChild(cTime);
+      card.appendChild(cRow);
+    }
+    const r1=h('div','flex items-center justify-between');
+    const dl=h('div');
+    const dt=new Date(tw.date+'T00:00:00');
+    dl.appendChild(h('p','text-sm text-slate-500',{},dt.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'short'})));
+    if(th){dl.appendChild(h('span','inline-block mt-0.5 text-xs font-medium px-1.5 py-0.5 rounded '+(th.t==='workday'?'bg-orange-50 text-orange-600':'bg-red-50 text-red-600'),{},th.n));}
+    r1.appendChild(dl);
+    const dr=h('div','flex items-center gap-3');
+    const[ic,txt]=weatherDesc(tw.wc,(tw.tMax+tw.tMin)/2);
+    dr.appendChild(h('span','text-4xl float',{},ic));
+    dr.appendChild(h('span','text-xs text-slate-400',{},txt));
+    r1.appendChild(dr);card.appendChild(r1);
+    const r2=h('div','flex items-center gap-4');
+    const td=h('div','flex-1');
+    const tsp=h('span','temp-text text-2xl inline-flex items-center gap-1');
+    tsp.appendChild(h('span',tempClr(tw.tMax),{},Math.round(tw.tMax)+'°'));
+    tsp.appendChild(h('span','text-slate-300 font-normal',{},'/'));
+    tsp.appendChild(h('span',tempClr(tw.tMin),{},Math.round(tw.tMin)+'°'));
+    td.appendChild(tsp);r2.appendChild(td);
+    const dd2=h('div','flex flex-col gap-1 items-end');
+    dd2.appendChild(h('span','text-xs text-slate-400',{},'💧'+tw.hum+'%'));
+    dd2.appendChild(h('span','text-xs text-slate-300',{},'💨 '+tw.ws+' km/h'));
+    if(tw.precip>0)dd2.appendChild(h('span','text-xs text-cyan-500',{},'🌧 '+tw.precip+' mm'));
+    r2.appendChild(dd2);card.appendChild(r2);
+    const bar=h('div','h-1.5 rounded-full bg-gradient-to-r from-blue-400 via-green-400 via-amber-400 to-red-500 relative overflow-hidden');
+    const pct=Math.max(0,Math.min(100,((tw.tMin+tw.tMax)/2+10)/50*100));
+    bar.appendChild(h('div','absolute top-0 h-full w-1.5 bg-white rounded-full shadow-md ring-1 ring-slate-200',{style:'left:'+pct+'%;transform:translateX(-50%)'}));
+    card.appendChild(bar);
+    const adv=getClothing(tw.tMax,tw.tMin,tw.hum,tw.ws,tw.precip);
+    const cc=h('div','bg-white rounded-2xl px-4 py-3 shadow-sm border border-slate-100');
+    const cr=h('div','flex items-center gap-3');
+    cr.appendChild(h('span','text-3xl',{},adv.icon));
+    const ct=h('div','flex-1 min-w-0');
+    ct.appendChild(h('p','font-semibold text-slate-700',{},adv.text));
+    ct.appendChild(h('p','text-xs text-slate-400 mt-0.5',{},adv.detail));
+    cr.appendChild(ct);cc.appendChild(cr);card.appendChild(cc);
+    ts2.appendChild(card);
+  }else{ts2.appendChild(h('div','text-center py-8 text-slate-400 text-sm',html:'<p>暂无天气数据</p><p class="text-xs mt-1">请选择城市后刷新</p>'));}
+  app.appendChild(ts2);
+
+  // Month nav
+  const nav=h('div','flex items-center justify-between px-1 py-2');
+  nav.appendChild(h('button','w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 active:bg-slate-200',{onclick:()=>chgM(-1)},'←'));
+  const mb=h('button','flex flex-col items-center group',{onclick:goToday});
+  mb.appendChild(h('span','text-lg font-bold text-slate-700',{},MONTHS[state.month]+' '+state.year));
+  mb.appendChild(h('span','text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity',{},'回到今天'));
+  nav.appendChild(mb);
+  nav.appendChild(h('button','w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 active:bg-slate-200',{onclick:()=>chgM(1)},'→'));
+  app.appendChild(nav);
+
+  // Calendar
+  const gs=h('section','flex-1 slide-in');
+  const gc=h('div','bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden');
+  const wr=h('div','grid grid-cols-7 gap-0.5 bg-slate-50/80 border-b border-slate-100');
+  WDAYS.forEach(l=>wr.appendChild(h('div','text-center text-xs font-medium text-slate-400 py-2',{},l)));
+  gc.appendChild(wr);
+  const dg=h('div','grid grid-cols-7 gap-0.5 p-0.5');
+  days.forEach(d=>dg.appendChild(renderDayCell(d)));
+  gc.appendChild(dg);gs.appendChild(gc);app.appendChild(gs);
+
+  // Legend
+  const ft=h('footer','mt-4 flex items-center justify-center gap-4 text-[10px] text-slate-300');
+  ft.appendChild(h('span','inline-flex items-center gap-1',html:'<span class="w-2 h-2 rounded-full bg-red-400"></span> 节假日'));
+  ft.appendChild(h('span','inline-flex items-center gap-1',html:'<span class="w-2 h-2 rounded-full bg-orange-400"></span> 调休上班'));
+  ft.appendChild(h('span','inline-flex items-center gap-1',html:'<span class="w-2 h-2 rounded-full bg-indigo-400 ring-1 ring-indigo-200"></span> 今天'));
+  app.appendChild(ft);
+}
+
+// ============ ACTIONS ============
+function chgM(dir){state.month+=dir;if(state.month<0){state.month=11;state.year--}if(state.month>11){state.month=0;state.year++}state.cityOpen=false;loadHolidays(state.year,state.month);render();}
+function goToday(){const n=new Date();state.year=n.getFullYear();state.month=n.getMonth();state.cityOpen=false;loadHolidays(state.year,state.month);render();}
+function selectCity(c){state.lat=c.lat;state.lon=c.lon;state.city=c.name;state.error=null;state.cityOpen=false;state.citySearch='';state.loading=true;render();loadWeather(true);}
+async function loadWeather(force){state.loading=true;state.error=null;render();try{if(!force){var c=getCache(state.lat,state.lon);if(c){state.weather=c.daily;state.cur=c.current;state.loading=false;render();return}}var d=await fetchWeather(state.lat,state.lon,7);state.weather=d.daily;state.cur=d.current;setCache(state.lat,state.lon,d);}catch(e){state.error=e.message}state.loading=false;render();}
+async function refreshAll(){state.loading=true;render();try{var d=await fetchWeather(state.lat,state.lon,7);state.weather=d.daily;state.cur=d.current;setCache(state.lat,state.lon,d);state.error=null;}catch(e){state.error=e.message}state.loading=false;render();}
+
+// ============ INIT ============
+async function initGeo(){
+  if(navigator.geolocation){try{const pos=await new Promise((r,rej)=>{navigator.geolocation.getCurrentPosition(r,rej,{enableHighAccuracy:true,timeout:10000,maximumAge:300000});});state.lat=pos.coords.latitude;state.lon=pos.coords.longitude;try{const r2=await fetch(`https://geocoding-api.open-meteo.com/v1/search?latitude=${state.lat}&longitude=${state.lon}&count=1&language=zh&format=json`,{signal:AbortSignal.timeout(5000)});const j=await r2.json();const c=j.results?.[0];state.city=c?.admin2||c?.admin1||state.lat.toFixed(2)+'°, '+state.lon.toFixed(2)+'°';state.error=null;}catch(e2){state.city=state.lat.toFixed(2)+'°, '+state.lon.toFixed(2)+'°';state.error=null}loadWeather();loadHolidays(state.year,state.month);return;}catch(e){if(e.code===1)state.error='定位权限未授权，请手动选城市';else if(e.code===2)state.error='定位超时，请手动选城市';else state.error='定位不可用，请手动选城市'}}else state.error='浏览器不支持定位，请手动选城市';
+  state.city='上海';loadWeather();loadHolidays(state.year,state.month);
+}
+
+let touchX=0;
+document.addEventListener('DOMContentLoaded',()=>{
+  document.addEventListener('touchstart',e=>{touchX=e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchX;if(Math.abs(dx)<50)return;chgM(dx>0?-1:1);});
+  initGeo();
+});
+</script>
+</body>
+</html>
