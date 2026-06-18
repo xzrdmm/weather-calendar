@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { HolidayInfo } from '../types'
 import { getMonthHolidays as getEmbeddedHolidays } from '../services/holidayData'
+import { getTraditionalHolidays } from '../services/traditionalHolidays'
 import { fetchMonthHolidays } from '../services/holidayApi'
 
 export function useHolidays(year: number, month: number) {
@@ -15,9 +16,13 @@ export function useHolidays(year: number, month: number) {
   }, [year, month])
 
   const holidayMap = useMemo(() => {
-    if (apiMap && apiMap.size > 0) return apiMap
-    // API 还没返回 → 先用嵌入数据
-    return getEmbeddedHolidays(year, month)
+    if (apiMap) return apiMap
+    // API 还没返回 → 嵌入式 + 传统节日合并
+    const merged = getEmbeddedHolidays(year, month)
+    for (const [dateStr, info] of getTraditionalHolidays(year, month)) {
+      if (!merged.has(dateStr)) merged.set(dateStr, info)
+    }
+    return merged
   }, [apiMap, year, month])
 
   return holidayMap

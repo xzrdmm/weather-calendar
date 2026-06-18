@@ -39,51 +39,49 @@ export function useGeolocation() {
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
+  const locate = useCallback(async () => {
+    setLoading(true)
 
-    async function locate() {
-      if (!navigator.geolocation) {
-        setError('浏览器不支持定位，请手动选择城市')
-        setLoading(false)
-        return
-      }
-
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000,
-          })
-        })
-
-        if (cancelled) return
-        const lat = pos.coords.latitude
-        const lon = pos.coords.longitude
-        const city = await reverseGeocode(lat, lon)
-        setLocation({
-          latitude: lat,
-          longitude: lon,
-          city: city ?? `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`,
-        })
-        setError(null)
-      } catch (err: unknown) {
-        const ge = err as GeolocationPositionError
-        if (ge?.code === 1) {
-          setError('定位权限未授权，请手动选择城市')
-        } else if (ge?.code === 2) {
-          setError('定位超时，请手动选择城市')
-        } else {
-          setError('定位不可用，请手动选择城市')
-        }
-      }
+    if (!navigator.geolocation) {
+      setError('浏览器不支持定位，请手动选择城市')
       setLoading(false)
+      return
     }
 
-    locate()
-    return () => { cancelled = true }
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0, // 重试时不用缓存
+        })
+      })
+
+      const lat = pos.coords.latitude
+      const lon = pos.coords.longitude
+      const city = await reverseGeocode(lat, lon)
+      setLocation({
+        latitude: lat,
+        longitude: lon,
+        city: city ?? `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`,
+      })
+      setError(null)
+    } catch (err: unknown) {
+      const ge = err as GeolocationPositionError
+      if (ge?.code === 1) {
+        setError('定位权限未授权，请手动选择城市')
+      } else if (ge?.code === 2) {
+        setError('定位超时，请手动选择城市')
+      } else {
+        setError('定位不可用，请手动选择城市')
+      }
+    }
+    setLoading(false)
   }, [])
 
-  return { location, error, loading, selectCity }
+  useEffect(() => {
+    locate()
+  }, [locate])
+
+  return { location, error, loading, selectCity, relocate: locate }
 }

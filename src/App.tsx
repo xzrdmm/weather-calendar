@@ -24,7 +24,7 @@ export default function App() {
   const yearRef = useRef(year)
   yearRef.current = year
 
-  const { location, error: geoError, loading: geoLoading, selectCity } = useGeolocation()
+  const { location, error: geoError, loading: geoLoading, selectCity, relocate } = useGeolocation()
   const { current, weatherMap, loading: weatherLoading, error: weatherError, refresh: refreshWeather } = useWeather(location)
   const holidayMap = useHolidays(year, month)
 
@@ -61,10 +61,11 @@ export default function App() {
     setMonth(CURRENT_MONTH)
   }, [])
 
-  // 刷新：强制拉取最新天气
+  // 刷新：重试 GPS + 强制拉取最新天气
   const handleRefresh = useCallback(() => {
+    relocate()
     refreshWeather()
-  }, [refreshWeather])
+  }, [relocate, refreshWeather])
 
   // 触摸滑动
   const touchStartX = useRef(0)
