@@ -1,0 +1,18 @@
+{
+  "name": "天气日历",
+  "short_name": "天气日历",
+  "description": "温度、湿度、穿衣建议、节假日调休 — 简洁灵动的天气日历",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#f8fafc",
+  "background_color": "#f8fafc",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f8fafc'/><text y='.75em' font-size='80' text-anchor='middle' x='50'>📅</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
